@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>鑫月雙享・月撥回試算器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #07090e;
+      --card-bg: rgba(16, 21, 32, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-sub: #9ca3af;
+      --text-muted: #6b7280;
+      
+      /* TWD 翡翠綠主題 */
+      --twd-primary: #10b981;
+      --twd-glow: rgba(16, 185, 129, 0.22);
+      --twd-border: rgba(16, 185, 129, 0.35);
+
+      /* USD 香檳金主題 */
+      --usd-primary: #f59e0b;
+      --usd-glow: rgba(245, 158, 11, 0.22);
+      --usd-border: rgba(245, 158, 11, 0.35);
+
+      /* 動態變數（預設 TWD） */
+      --active-accent: var(--twd-primary);
+      --active-glow: var(--twd-glow);
+      --active-border: var(--twd-border);
+      --badge-bg: rgba(16, 185, 129, 0.12);
+    }
+
+    body[data-currency="USD"] {
+      --active-accent: var(--usd-primary);
+      --active-glow: var(--usd-glow);
+      --active-border: var(--usd-border);
+      --badge-bg: rgba(245, 158, 11, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Noto Sans TC', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(20, 30, 48, 0.4) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, var(--active-glow) 0%, transparent 45%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+      transition: background-image 0.5s ease;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 580px;
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7), 0 0 40px -10px var(--active-glow);
+      transition: all 0.4s ease;
+    }
+
+    /* 頂部標頭與幣別指示 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .brand-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    .currency-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--badge-bg);
+      color: var(--active-accent);
+      border: 1px solid var(--active-border);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 0 0 12px var(--active-glow);
+      transition: all 0.3s ease;
+    }
+
+    /* 幣別切換 Toggle */
+    .currency-switcher {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      padding: 4px;
+      gap: 6px;
+      margin-bottom: 28px;
+    }
+
+    .currency-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      padding: 10px 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.25s ease;
+    }
+
+    .currency-btn.active {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--active-accent);
+      box-shadow: inset 0 0 0 1px var(--active-border);
+    }
+
+    /* 輸入表單區塊 */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .readable-hint {
+      font-size: 0.8rem;
+      color: var(--active-accent);
+      font-weight: 500;
+    }
+
+    /* 查淨值外連按鈕 */
+    .nav-lookup-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--active-accent);
+      background: var(--badge-bg);
+      border: 1px solid var(--active-border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .nav-lookup-btn:hover {
+      background: var(--active-accent);
+      color: #000000;
+      box-shadow: 0 0 10px var(--active-glow);
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-symbol {
+      position: absolute;
+      left: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .input-unit-right {
+      position: absolute;
+      right: 16px;
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      pointer-events: none;
+      user-select: none;
+      font-weight: 500;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px 70px 14px 44px;
+      color: #ffffff;
+      font-size: 1.05rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .form-input.no-right-unit {
+      padding-right: 16px;
+    }
+
+    .form-input:focus {
+      border-color: var(--active-accent);
+      box-shadow: 0 0 0 3px var(--active-glow);
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    /* 費率選項群組 */
+    .fee-chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .chip-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      color: var(--text-sub);
+      padding: 10px 0;
+      font-size: 0.88rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .chip-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+    }
+
+    .chip-btn.active {
+      background: var(--badge-bg);
+      border-color: var(--active-border);
+      color: var(--active-accent);
+    }
+
+    .custom-fee-container {
+      margin-top: 10px;
+      display: none;
+    }
+
+    .custom-fee-container.show {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 成果展示卡片 */
+    .results-card {
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 20px;
+      border: 1px solid var(--card-border);
+      padding: 22px;
+      margin-top: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .results-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--active-accent), transparent);
+    }
+
+    .interim-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stat-label {
+      font-size: 0.84rem;
+      color: var(--text-sub);
+    }
+
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    /* 撥回分項清單 */
+    .payout-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    /* 強化版：定期撥回（基本款） */
+    .payout-item-primary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1.5px solid var(--active-border);
+      box-shadow: 0 4px 20px -4px var(--active-glow);
+    }
+
+    /* 次要版：加碼撥回（浮動款） */
+    .payout-item-secondary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.015);
+      padding: 11px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      opacity: 0.88;
+    }
+
+    .payout-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .payout-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+
+    .payout-name-primary {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .payout-name-secondary {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-sub);
+    }
+
+    .payout-rate-spec {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* 定期金額加大且套用主題色 */
+    .payout-amount-primary {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--active-accent);
+      letter-spacing: -0.01em;
+    }
+
+    /* 加碼金額維持常規尺寸 */
+    .payout-amount-secondary {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.02rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* 總計醒目亮點 */
+    .total-banner {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+      border: 1px solid var(--active-border);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 8px 24px -6px var(--active-glow);
+    }
+
+    .total-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .total-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .total-figure {
+      text-align: right;
+    }
+
+    .total-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--active-accent);
+      letter-spacing: -0.02em;
+    }
+
+    .total-unit {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-left: 2px;
+      font-family: 'Noto Sans TC', sans-serif;
+    }
+
+    /* 底部警語 */
+    .disclaimer {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-top: 20px;
+      text-align: justify;
+    }
+  </style>
+</head>
+<body data-currency="TWD">
+
+  <div class="container">
+    <!-- 頂部資訊區 -->
+    <div class="header">
+      <div>
+        <div class="brand-title">鑫月雙享試算 <span style="font-size: 0.9rem; opacity: 0.7;">BVA3 / UBVA3</span></div>
+        <div class="brand-subtitle">投資型變額年金保險・月撥回試算模型</div>
+      </div>
+      <div id="currencyBadge" class="currency-pill">TWD 模式</div>
+    </div>
+
+    <!-- 幣別快速切換 Toggle -->
+    <div class="currency-switcher">
+      <button class="currency-btn active" id="btnTWD" onclick="setCurrency('TWD')">
+        <span>新臺幣 (BVA3)</span>
+      </button>
+      <button class="currency-btn" id="btnUSD" onclick="setCurrency('USD')">
+        <span>美元 (UBVA3)</span>
+      </button>
+    </div>
+
+    <!-- 輸入項 1: 投入保費 (預設單位: 萬元) -->
+    <div class="form-group">
+      <div class="label-row">
+        <label class="form-label" for="premiumInput">投入保費</label>
+        <span id="readableText" class="readable-hint">100 萬元 (NT$ 1,000,000)</span>
+      </div>
+      <div class="input-wrapper">
+        <span id="currSymbol" class="input-symbol">NT$</span>
+        <input 
+          type="number" 
+          id="premiumInput" 
+          class="form-input" 
+          value="100" 
+          step="1" 
+          min="0.01"
+          oninput="recalculate()"
+        />
+        <span id="unitText" class="input-unit-right">萬元</span>
+      </div>
+    </div>
+
+    <!-- 輸入項 2: 前置費用率 -->
+    <div class="form-group">
+      <div class="label-row">
+        <label class="form-label">前置保費費用率</label>
+        <span id="selectedFeeDisplay" class="readable-hint">2.7%</span>
+      </div>
+      <div class="fee-chips">
+        <button class="chip-btn" onclick="selectFee(3.0, this)">3.0%</button>
+        <button class="chip-btn" onclick="selectFee(2.8, this)">2.8%</button>
+        <button class="chip-btn active" onclick="selectFee(2.7, this)">2.7%</button>
+        <button class="chip-btn" onclick="toggleCustomFee(this)">自訂 %</button>
+      </div>
+      <!-- 自訂費率手動輸入框 -->
+      <div id="customFeeBox" class="custom-fee-container">
+        <div class="input-wrapper" style="margin-top: 8px;">
+          <span class="input-symbol">%</span>
+          <input 
+            type="number" 
+            id="customFeeInput" 
+            class="form-input no-right-unit" 
+            placeholder="請輸入優惠費率 (如: 2.5)" 
+            step="0.01" 
+            min="0" 
+            max="10" 
+            oninput="recalculate()"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- 輸入項 3: 進場單位淨值 (預設復華三三得利 + 官網專屬查詢直達) -->
+    <div class="form-group">
+      <div class="label-row">
+        <label class="form-label" for="navInput">
+          <span id="fundLabel">標的：復華三三得利 (WBR)</span>
+        </label>
+        <a 
+          href="https://ilp.nanshanlife.com.tw/main.html?sUrl=$W$CUST1$SELECT]DJHTM{T}TR01" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          class="nav-lookup-btn"
+          title="開啟南山人壽官網查詢最新牌告淨值"
+        >
+          查最新淨值 ↗
+        </a>
+      </div>
+      <div class="input-wrapper">
+        <span class="input-symbol">NAV</span>
+        <input 
+          type="number" 
+          id="navInput" 
+          class="form-input no-right-unit" 
+          value="10.00" 
+          step="0.01" 
+          min="0.01" 
+          oninput="recalculate()"
+        />
+      </div>
+    </div>
+
+    <!-- 試算成果區塊 -->
+    <div class="results-card">
+      <!-- 淨投入額與購得單位 -->
+      <div class="interim-stat">
+        <div>
+          <div class="stat-label">扣除費用後淨投資金額</div>
+          <div id="netInvestedDisplay" class="stat-val">NT$ 973,000</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="stat-label">購買到單位數</div>
+          <div id="unitsDisplay" class="stat-val" style="color: var(--active-accent);">97,300.00 單位</div>
+        </div>
+      </div>
+
+      <!-- 分項撥回看板 (強弱對比) -->
+      <div class="payout-list">
+        <!-- 強化凸顯：定期撥回（基本款） -->
+        <div class="payout-item-primary">
+          <div class="payout-title-group">
+            <span class="payout-tag" style="color: var(--active-accent);">【核心基本款】</span>
+            <span class="payout-name-primary">每月定期撥回金額</span>
+            <span class="payout-rate-spec">基準日(每月20日) NAV ≥ 8.0 元 (每單位 0.042 元)</span>
+          </div>
+          <span id="basePayoutDisplay" class="payout-amount-primary">NT$ 4,087</span>
+        </div>
+
+        <!-- 柔和襯托：加碼撥回（浮動款） -->
+        <div class="payout-item-secondary">
+          <div class="payout-title-group">
+            <span class="payout-tag" style="color: var(--text-muted);">【市場紅利加碼】</span>
+            <span class="payout-name-secondary">每月加碼撥回金額</span>
+            <span class="payout-rate-spec">檢視期間任一天 NAV > 10.3 元 (每單位 0.050 元)</span>
+          </div>
+          <span id="bonusPayoutDisplay" class="payout-amount-secondary">NT$ 4,865</span>
+        </div>
+      </div>
+
+      <!-- 總額高亮展示 -->
+      <div class="total-banner">
+        <div>
+          <div class="total-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            每月預估雙享總撥回
+          </div>
+          <div class="total-sub">定期撥回 + 加碼撥回合計</div>
+        </div>
+        <div class="total-figure">
+          <span id="totalPayoutDisplay" class="total-num">NT$ 8,952</span>
+          <span class="total-unit">/ 月</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部警語 -->
+    <div class="disclaimer">
+      * 本試算工具僅供阿伯與客戶業務溝通輔助參考。資產撥回機制來源可能為本金，撥回率與撥回金額非固定且不保證保本；實際撥回金額與各期淨值請以保單條款及各月份委託投資帳戶公告為準。
+    </div>
+  </div>
+
+  <script>
+    let currentCurrency = 'TWD';
+    let currentFeeRate = 2.7;
+    let isCustomFee = false;
+
+    // 格式化千分位
+    function formatNumber(num, decimals = 0) {
+      if (isNaN(num)) return '0';
+      return num.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    // 幣別切換邏輯
+    function setCurrency(curr) {
+      currentCurrency = curr;
+      document.body.setAttribute('data-currency', curr);
+
+      const isTWD = curr === 'TWD';
+      document.getElementById('btnTWD').classList.toggle('active', isTWD);
+      document.getElementById('btnUSD').classList.toggle('active', !isTWD);
+      
+      const badge = document.getElementById('currencyBadge');
+      const symbol = document.getElementById('currSymbol');
+      const premiumInput = document.getElementById('premiumInput');
+      const unitText = document.getElementById('unitText');
+      const fundLabel = document.getElementById('fundLabel');
+
+      if (isTWD) {
+        badge.innerText = 'TWD 新臺幣模式';
+        symbol.innerText = 'NT$';
+        unitText.innerText = '萬元';
+        fundLabel.innerText = '標的：復華三三得利 (WBR)';
+        if (premiumInput.value == 3) premiumInput.value = 100;
+      } else {
+        badge.innerText = 'USD 美元模式';
+        symbol.innerText = 'US$';
+        unitText.innerText = '萬美元';
+        fundLabel.innerText = '標的：復華美元精選平衡型 (WBQ)';
+        if (premiumInput.value == 100) premiumInput.value = 3;
+      }
+
+      recalculate();
+    }
+
+    // 費率按鈕切換
+    function selectFee(rate, btnElement) {
+      isCustomFee = false;
+      currentFeeRate = rate;
+      document.getElementById('customFeeBox').classList.remove('show');
+
+      document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      document.getElementById('selectedFeeDisplay').innerText = `${rate.toFixed(1)}%`;
+      recalculate();
+    }
+
+    // 自訂費率切換
+    function toggleCustomFee(btnElement) {
+      isCustomFee = true;
+      document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      const customBox = document.getElementById('customFeeBox');
+      customBox.classList.add('show');
+      
+      const customInput = document.getElementById('customFeeInput');
+      if (!customInput.value) {
+        customInput.value = '2.5';
+      }
+      currentFeeRate = parseFloat(customInput.value) || 0;
+      document.getElementById('selectedFeeDisplay').innerText = `自訂 (${currentFeeRate}%)`;
+      recalculate();
+    }
+
+    // 主計算引擎
+    function recalculate() {
+      // 單位為「萬元」，乘 10,000 換算實際保費
+      const inputWan = parseFloat(document.getElementById('premiumInput').value) || 0;
+      const actualPremium = inputWan * 10000;
+      const nav = parseFloat(document.getElementById('navInput').value) || 0.01;
+
+      // 取得自訂費率
+      if (isCustomFee) {
+        const val = parseFloat(document.getElementById('customFeeInput').value);
+        currentFeeRate = isNaN(val) ? 0 : val;
+        document.getElementById('selectedFeeDisplay').innerText = `自訂 (${currentFeeRate}%)`;
+      }
+
+      // 提示讀數
+      const readableSpan = document.getElementById('readableText');
+      const currPrefix = currentCurrency === 'TWD' ? 'NT$ ' : 'US$ ';
+      const unitLabel = currentCurrency === 'TWD' ? '萬元' : '萬美元';
+      readableSpan.innerText = `${inputWan} ${unitLabel} (${currPrefix}${formatNumber(actualPremium)})`;
+
+      // 1. 計算淨投資金額
+      const feeAmount = actualPremium * (currentFeeRate / 100);
+      const netInvested = Math.max(0, actualPremium - feeAmount);
+
+      // 2. 計算購得單位數 (取小數點 2 位)
+      const units = nav > 0 ? (netInvested / nav) : 0;
+
+      // 3. 計算分項撥回 (方案 B: 基準日 0.042，加碼 0.050)
+      const basePayout = units * 0.042;
+      const bonusPayout = units * 0.050;
+      const totalPayout = basePayout + bonusPayout;
+
+      // 渲染數值
+      document.getElementById('netInvestedDisplay').innerText = currPrefix + formatNumber(netInvested);
+      document.getElementById('unitsDisplay').innerText = `${formatNumber(units, 2)} 單位`;
+      
+      document.getElementById('basePayoutDisplay').innerText = currPrefix + formatNumber(Math.round(basePayout));
+      document.getElementById('bonusPayoutDisplay').innerText = currPrefix + formatNumber(Math.round(bonusPayout));
+      document.getElementById('totalPayoutDisplay').innerText = currPrefix + formatNumber(Math.round(totalPayout));
+    }
+
+    // 初始化試算
+    recalculate();
+  </script>
+</body>
+</html>
